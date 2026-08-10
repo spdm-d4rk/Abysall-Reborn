@@ -50,7 +50,23 @@ local Window = Library:CreateWindow({
 Abysall.Interface.ApplyInfoTab(Window)
 local Tabs = {
     General = Window:AddTab("General", "house"),
+    TplaysAddon = Window:AddTab("Tplay's Addon", "settings"),
 }
+
+local TplaysAddonBox = Tabs.TplaysAddon:AddLeftGroupbox("Tplay's Addon")
+TplaysAddonBox:AddLabel("Tplay's Addon is loaded.")
+TplaysAddonBox:AddLabel("Lobby mode: local diagnostics are ready.")
+TplaysAddonBox:AddDivider()
+TplaysAddonBox:AddLabel("The full Doors-run diagnostics appear automatically after entering a run.")
+TplaysAddonBox:AddButton({
+    Text = "Show loaded status",
+    Func = function()
+        Functions.Notify({
+            Title = "Tplay's Addon",
+            Body = "The embedded addon tab is active in the lobby."
+        })
+    end
+})
 
 Functions.CheckCompatability = function(Array)
     local Valid = true
