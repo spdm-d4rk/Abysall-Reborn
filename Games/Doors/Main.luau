@@ -1255,7 +1255,7 @@ local Tabs = {
 	Exploits = Window:AddTab("Exploits", "shield"),
 	Visuals  = Window:AddTab("Visuals", "eye"),
 	Floors   = Window:AddTab("Floors", "earth"),
-	TplaysAddon = Window:AddTab("Tplay's Addon", "layers"),
+	TplaysAddon = Window:AddTab("Tplay's Addon", "settings"),
 }
 
 TplaysAddon({
