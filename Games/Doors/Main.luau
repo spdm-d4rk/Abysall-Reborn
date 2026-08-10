@@ -1025,7 +1025,230 @@ local Window = Library:CreateWindow({
 
 Abysall.Interface.ApplyInfoTab(Window)
 
-local TplaysAddon = loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Components/TplaysAddon.luau"))()
+-- Tplay's Addon compatibility tab.
+--
+-- This is embedded in the Doors script so the tab does not depend on an
+-- additional file being present in the remote Abyssal repository. The port
+-- is intentionally local-only: it does not hook metamethods, fire remotes,
+-- manipulate character physics, bypass entities, or alter server state.
+local TplaysAddon = function(Context)
+	local Tab = Context.Tab or Context.Window:AddTab("Tplay's Addon", "layers")
+	local Library = Context.Library
+	local Services = Context.Services
+	local CurrentRooms = Context.CurrentRooms
+	local LocalPlayer = Context.LocalPlayer
+
+	local Status = Tab:AddLeftGroupbox("Addon status")
+	local Visuals = Tab:AddRightGroupbox("Visual diagnostics")
+	local Groundkeepers = {}
+	local GroundkeeperConnections = {}
+	local OriginalTransparency = {}
+	local FigureHighlights = {}
+	local Connections = {}
+	local StatusLabel
+	local NotifyGroundskeeper
+	local ShowPathfindNodes
+	local HighlightFigures
+	local LastStatusUpdate = 0
+
+	local function disconnect(Connection)
+		if Connection then
+			pcall(function()
+				Connection:Disconnect()
+			end)
+		end
+	end
+
+	local function updateStatus(Force)
+		if not Force and os.clock() - LastStatusUpdate < 1 then
+			return
+		end
+		LastStatusUpdate = os.clock()
+
+		local GroundkeeperCount = 0
+		local FigureCount = 0
+		for Object in Groundkeepers do
+			if Object and Object:IsDescendantOf(CurrentRooms) then
+				GroundkeeperCount += 1
+			end
+		end
+		for Object in FigureHighlights do
+			if Object and Object:IsDescendantOf(CurrentRooms) then
+				FigureCount += 1
+			end
+		end
+
+		StatusLabel:SetText(("Current room: %s | Groundskeepers: %d | Figures highlighted: %d"):format(
+			tostring(LocalPlayer:GetAttribute("CurrentRoom") or "unknown"),
+			GroundkeeperCount,
+			FigureCount
+		))
+	end
+
+	local function watchGroundskeeper(Object)
+		if Object.Name ~= "Groundskeeper" or Groundkeepers[Object] then
+			return
+		end
+
+		local Head = Object:FindFirstChild("Head") or Object:WaitForChild("Head", 5)
+		if not Head then
+			return
+		end
+
+		Groundkeepers[Object] = true
+		GroundkeeperConnections[Object] = Head.ChildAdded:Connect(function(Child)
+			if NotifyGroundskeeper.Value and Child.Name:sub(1, 7) == "gkgrunt" then
+				Library:Notify({
+					Title = "Tplay's Addon [Groundskeeper]",
+					Description = "The Groundskeeper finished a taunt.",
+					Time = 3
+				})
+			end
+		end)
+	end
+
+	local function setPathfindFolder(Folder, Enabled)
+		for _, Node in Folder:GetChildren() do
+			if Node:IsA("BasePart") then
+				if Enabled then
+					if OriginalTransparency[Node] == nil then
+						OriginalTransparency[Node] = Node.Transparency
+					end
+					Node.Transparency = 0.5
+				elseif OriginalTransparency[Node] ~= nil then
+					Node.Transparency = OriginalTransparency[Node]
+				end
+			end
+		end
+	end
+
+	local function setFigureHighlight(Figure, Enabled)
+		if Figure.Name ~= "FigureRig" then
+			return
+		end
+
+		if Enabled and not FigureHighlights[Figure] then
+			local Highlight = Instance.new("Highlight")
+			Highlight.Name = "TplaysAddonFigureHighlight"
+			Highlight.Adornee = Figure
+			Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			Highlight.FillColor = Color3.fromRGB(178, 88, 255)
+			Highlight.FillTransparency = 0.72
+			Highlight.OutlineColor = Color3.fromRGB(235, 210, 255)
+			Highlight.OutlineTransparency = 0.1
+			Highlight.Parent = Figure
+			FigureHighlights[Figure] = Highlight
+		elseif not Enabled and FigureHighlights[Figure] then
+			FigureHighlights[Figure]:Destroy()
+			FigureHighlights[Figure] = nil
+		end
+	end
+
+	local function refresh()
+		for _, Object in CurrentRooms:GetDescendants() do
+			if Object.Name == "PathfindNodes" then
+				setPathfindFolder(Object, ShowPathfindNodes.Value)
+			elseif Object.Name == "FigureRig" then
+				setFigureHighlight(Object, HighlightFigures.Value)
+			elseif Object.Name == "Groundskeeper" then
+				watchGroundskeeper(Object)
+			end
+		end
+		updateStatus(true)
+	end
+
+	Status:AddLabel("Safe local port of selected Tplay's Addon utilities.")
+	Status:AddLabel("Remote and anti-cheat manipulation are not included.")
+	StatusLabel = Status:AddLabel("Current room: unknown")
+
+	NotifyGroundskeeper = Status:AddToggle("TplaysNotifyGroundskeeper", {
+		Text = "Groundskeeper notifications",
+		Default = false,
+		Tooltip = "Shows a local notification when a tracked Groundskeeper taunts."
+	})
+	ShowPathfindNodes = Visuals:AddToggle("TplaysShowPathfindNodes", {
+		Text = "Show pathfind nodes",
+		Default = false,
+		Tooltip = "Makes existing pathfind nodes visible locally."
+	})
+	HighlightFigures = Visuals:AddToggle("TplaysHighlightFigure", {
+		Text = "Highlight Figure rigs",
+		Default = false,
+		Tooltip = "Adds a local visual highlight to Figure rigs."
+	})
+	Visuals:AddButton({
+		Text = "Refresh diagnostics",
+		Func = function()
+			refresh()
+			Library:Notify({
+				Title = "Tplay's Addon",
+				Description = "Local diagnostics refreshed.",
+				Time = 2
+			})
+		end
+	})
+
+	ShowPathfindNodes:OnChanged(function(Value)
+		for _, Object in CurrentRooms:GetDescendants() do
+			if Object.Name == "PathfindNodes" then
+				setPathfindFolder(Object, Value)
+			end
+		end
+		updateStatus(true)
+	end)
+	HighlightFigures:OnChanged(function(Value)
+		for _, Object in CurrentRooms:GetDescendants() do
+			if Object.Name == "FigureRig" then
+				setFigureHighlight(Object, Value)
+			end
+		end
+		updateStatus(true)
+	end)
+
+	for _, Object in CurrentRooms:GetDescendants() do
+		if Object.Name == "Groundskeeper" then
+			watchGroundskeeper(Object)
+		end
+	end
+
+	Connections.DescendantAdded = CurrentRooms.DescendantAdded:Connect(function(Object)
+		if Object.Name == "Groundskeeper" then
+			task.defer(watchGroundskeeper, Object)
+		elseif Object.Name == "PathfindNodes" and ShowPathfindNodes.Value then
+			task.defer(setPathfindFolder, Object, true)
+		elseif Object.Name == "FigureRig" and HighlightFigures.Value then
+			task.defer(setFigureHighlight, Object, true)
+		end
+	end)
+	Connections.RoomChanged = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
+		updateStatus(true)
+	end)
+	Connections.StatusUpdate = Services.RunService.Heartbeat:Connect(function()
+		updateStatus(false)
+	end)
+
+	Library:OnUnload(function()
+		for _, Connection in Connections do
+			disconnect(Connection)
+		end
+		for _, Connection in GroundkeeperConnections do
+			disconnect(Connection)
+		end
+		for Node, Transparency in OriginalTransparency do
+			if Node and Node.Parent then
+				Node.Transparency = Transparency
+			end
+		end
+		for _, Highlight in FigureHighlights do
+			if Highlight then
+				Highlight:Destroy()
+			end
+		end
+	end)
+
+	updateStatus(true)
+	return Tab
+end
 
 local Tabs = {
 	General  = Window:AddTab("General", "house"),
