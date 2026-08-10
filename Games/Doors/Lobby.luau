@@ -50,10 +50,9 @@ local Window = Library:CreateWindow({
 Abysall.Interface.ApplyInfoTab(Window)
 local Tabs = {
     General = Window:AddTab("General", "house"),
-    TplaysAddon = Window:AddTab("Tplay's Addon", "settings"),
 }
 
-local TplaysAddonBox = Tabs.TplaysAddon:AddLeftGroupbox("Tplay's Addon")
+local TplaysAddonBox = Tabs.General:AddRightGroupbox("Tplay's Addon")
 TplaysAddonBox:AddLabel("Tplay's Addon is loaded.")
 TplaysAddonBox:AddLabel("Lobby mode: local diagnostics are ready.")
 TplaysAddonBox:AddDivider()
