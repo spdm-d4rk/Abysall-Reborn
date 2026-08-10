@@ -1025,12 +1025,24 @@ local Window = Library:CreateWindow({
 
 Abysall.Interface.ApplyInfoTab(Window)
 
+local TplaysAddon = loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Components/TplaysAddon.luau"))()
+
 local Tabs = {
 	General  = Window:AddTab("General", "house"),
 	Exploits = Window:AddTab("Exploits", "shield"),
 	Visuals  = Window:AddTab("Visuals", "eye"),
 	Floors   = Window:AddTab("Floors", "earth"),
+	TplaysAddon = Window:AddTab("Tplay's Addon", "layers"),
 }
+
+TplaysAddon({
+	Window = Window,
+	Library = Library,
+	Services = Services,
+	CurrentRooms = CurrentRooms,
+	LocalPlayer = LocalPlayer,
+	Tab = Tabs.TplaysAddon,
+})
 
 Groupboxes.General_Character = Tabs.General:AddLeftGroupbox("Character")
 Groupboxes.General_Character:AddSlider("SpeedBoostSlider", {
