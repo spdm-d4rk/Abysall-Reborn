@@ -1255,7 +1255,6 @@ local Tabs = {
 	Exploits = Window:AddTab("Exploits", "shield"),
 	Visuals  = Window:AddTab("Visuals", "eye"),
 	Floors   = Window:AddTab("Floors", "earth"),
-	TplaysAddon = Window:AddTab("Tplay's Addon", "settings"),
 }
 
 TplaysAddon({
@@ -1264,7 +1263,7 @@ TplaysAddon({
 	Services = Services,
 	CurrentRooms = CurrentRooms,
 	LocalPlayer = LocalPlayer,
-	Tab = Tabs.TplaysAddon,
+	Tab = Tabs.General,
 })
 
 Groupboxes.General_Character = Tabs.General:AddLeftGroupbox("Character")
